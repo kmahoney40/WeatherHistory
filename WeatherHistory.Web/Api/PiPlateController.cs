@@ -28,7 +28,7 @@ namespace WeatherHistory.Web.Api
         {
             GMT = DateTime.UtcNow;
         }
-        public TEMP_FAN(int id, double t1, double t2, double t3, bool fo, double voltage)
+        public TEMP_FAN(int id, double t1, double t2, double t3, bool fo, double voltage, string gmt)
         {
             TEMP_FAN_ID = id;
             TEMP_1 = t1;
@@ -36,6 +36,7 @@ namespace WeatherHistory.Web.Api
             TEMP_3 = t1;
             FAN_ON = fo;
             VOLTAGE = voltage;
+            GMT = Convert.ToDateTime(gmt);
         }
         public TEMP_FAN(TEMP_FAN tempFan)
         {

@@ -12,5 +12,12 @@ namespace WeatherHistory.Web.Api
     public class DoorController : ApiController
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        public DoorController() { }
+
+        [Route("")]
+        public IHttpActionResult Get()
+        {
+            return Ok("{\"door\": \"door\"}");
+        }
     }
 }
