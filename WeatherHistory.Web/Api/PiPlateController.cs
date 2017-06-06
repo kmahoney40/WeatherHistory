@@ -60,10 +60,20 @@ namespace WeatherHistory.Web.Api
         public DateTime GMT { get; set; }
     }
 
+    [Table("DOOR", Schema = "public")]
+    public class DOOR
+    {
+        [Key]
+        [Column("DOOR_ID")]
+        public int DOOR_ID { get; set; }
+        public bool CMD { get; set; }
+    }
+
     public partial class db_Entities : DbContext
     {
         public db_Entities() : base("postgres") { }
         public DbSet<TEMP_FAN> TEMP_FAN { get; set; }
+        public DbSet<DOOR> DOOR { get; set; }
     }
 
     [RoutePrefix("piplates")]
