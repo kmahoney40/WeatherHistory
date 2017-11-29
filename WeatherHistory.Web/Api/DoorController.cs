@@ -20,6 +20,7 @@ namespace WeatherHistory.Web.Api
             logger.Trace("request: " + "DoorController()");
         }
 
+
         [Route("")]
         public IHttpActionResult Get()
         {
