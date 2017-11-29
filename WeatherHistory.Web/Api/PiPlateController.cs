@@ -10,70 +10,77 @@ using NLog;
 using System.Data.Entity;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Web.Script.Serialization;
 
 namespace WeatherHistory.Web.Api
 {
-    [Table("TEMP_FAN", Schema="public")]
-    public class TEMP_FAN
+    [Table("temp_fan", Schema="public")]
+    public class temp_fan
     {
-        public TEMP_FAN() 
+        public temp_fan() 
         {
             //GMT = DateTime.UtcNow;
         }
-        public TEMP_FAN(string s)
+        public temp_fan(string s)
         {
-            GMT = DateTime.UtcNow;
+            dt_created = DateTime.UtcNow;
         }
-        public TEMP_FAN(JArray update)
+        public temp_fan(JArray update)
         {
-            GMT = DateTime.UtcNow;
+            dt_created = DateTime.UtcNow;
         }
-        public TEMP_FAN(int id, double t1, double t2, double t3, bool fo, double voltage, string gmt)
+        public temp_fan(int id, double t1, double t2, double t3, bool fo, bool co, double voltage, string gmt)
         {
-            TEMP_FAN_ID = id;
-            TEMP_1 = t1;
-            TEMP_2 = t2;
-            TEMP_3 = t1;
-            FAN_ON = fo;
-            VOLTAGE = voltage;
-            GMT = Convert.ToDateTime(gmt);
+            this.id = id;
+            temp_1 = t1;
+            temp_2 = t2;
+            temp_3 = t1;
+            fan_on = fo;
+            charger_on = co;
+            this.voltage = voltage;
+            dt_created = Convert.ToDateTime(gmt);
+            //dt_created = gmt;
         }
-        public TEMP_FAN(TEMP_FAN tempFan)
+        public temp_fan(temp_fan tempFan)
         {
-            TEMP_FAN_ID = tempFan.TEMP_FAN_ID;
-            TEMP_1 = tempFan.TEMP_1;
-            TEMP_2 = tempFan.TEMP_2;
-            TEMP_3 = tempFan.TEMP_3;
-            FAN_ON = tempFan.FAN_ON;
-            VOLTAGE = tempFan.VOLTAGE;
-            GMT = tempFan.GMT;
+            id = tempFan.id;
+            temp_1 = tempFan.temp_1;
+            temp_2 = tempFan.temp_2;
+            temp_3 = tempFan.temp_3;
+            fan_on = tempFan.fan_on;
+            charger_on = tempFan.charger_on;
+            voltage = tempFan.voltage;
+            dt_created = tempFan.dt_created;
         }
 
         [Key]
-        [Column("TEMP_FAN_ID")]
-        public int TEMP_FAN_ID { get; set; }
-        public double TEMP_1 { get; set; }
-        public double TEMP_2 { get; set; }
-        public double TEMP_3 { get; set; }
-        public bool FAN_ON { get; set; }
-        public double VOLTAGE { get; set; }
-        public DateTime GMT { get; set; }
+        [Column("id")]
+        public int id { get; set; }
+        public double temp_1 { get; set; }
+        public double temp_2 { get; set; }
+        public double temp_3 { get; set; }
+        public bool fan_on { get; set; }
+        public bool charger_on { get; set; }
+        public double voltage { get; set; }
+        public DateTime dt_created { get; set; }
     }
 
-    [Table("DOOR", Schema = "public")]
-    public class DOOR
+    [Table("door", Schema = "public")]
+    public class door
     {
         [Key]
-        [Column("DOOR_ID")]
-        public int DOOR_ID { get; set; }
-        public bool CMD { get; set; }
+        [Column("id")]
+        public int id { get; set; }
+        public bool cmd { get; set; }
     }
 
     public partial class db_Entities : DbContext
     {
-        public db_Entities() : base("postgres") { }
-        public DbSet<TEMP_FAN> TEMP_FAN { get; set; }
-        public DbSet<DOOR> DOOR { get; set; }
+        public db_Entities() : base("awsautomation") { }
+        //public db_Entities() : base("postgres") { }
+        public DbSet<temp_fan> temp_fan { get; set; }
+        public DbSet<door> door { get; set; }
     }
 
     [RoutePrefix("piplates")]
@@ -87,11 +94,11 @@ namespace WeatherHistory.Web.Api
         {
             logger.Trace("PiPlates.Get");
 
-            TEMP_FAN row;
+            temp_fan row;
             string jRow = string.Empty;
             using (var context = new db_Entities())
             {
-                row = context.TEMP_FAN.ToList().OrderByDescending(r => r.TEMP_FAN_ID).FirstOrDefault();
+                row = context.temp_fan.ToList().OrderByDescending(r => r.id).FirstOrDefault();
                 jRow = JsonConvert.SerializeObject(row);
             }
             logger.Info("Log Get");
@@ -107,7 +114,7 @@ namespace WeatherHistory.Web.Api
             string retRows;
             using (var context = new db_Entities())
             {
-                var row = context.TEMP_FAN.ToList().OrderByDescending(r => r.TEMP_FAN_ID).Take(rows);
+                var row = context.temp_fan.ToList().OrderByDescending(r => r.id).Take(rows);
                 retRows = JsonConvert.SerializeObject(row);
             }
             logger.Info("Log Get");
@@ -117,16 +124,34 @@ namespace WeatherHistory.Web.Api
         [Route("")]
         public IHttpActionResult Post([FromBody] string request)
         {
-            logger.Trace("request: " + request);
-
-            TEMP_FAN temp = JsonConvert.DeserializeObject<TEMP_FAN>(request);
-            using (var context = new db_Entities())
+            try
             {
-                context.Entry(temp).State = EntityState.Added;
-                context.SaveChanges();
+                logger.Info("request: " + request);
+
+                var jss = new JavaScriptSerializer();
+                dynamic data = jss.Deserialize<dynamic>(request);
+
+                temp_fan temp = JsonConvert.DeserializeObject<temp_fan>(request);
+                // data["GMT"] = "yyyy-MM-dd hh:mm:ss.ffffff offset"
+                var dtCreated = (string)data["GMT"];
+                logger.Debug("PiPlateController.Post dtCreated = " + dtCreated);
+                int idx = dtCreated.IndexOf('.');
+                dtCreated = dtCreated.Substring(0, idx);
+                logger.Debug("PiPlateController.Post dtCreated SHORT = " + dtCreated);
+                //temp.dt_created = DateTime.ParseExact(dtCreated, "yyyy-MM-dd hh:mm:ss", CultureInfo.InvariantCulture);
+                temp.dt_created = DateTime.Parse(dtCreated);
+                using (var context = new db_Entities())
+                {
+                    context.Entry(temp).State = EntityState.Added;
+                    context.SaveChanges();
+                }
+
+                logger.Info(request);
             }
-            
-            logger.Info(request);
+            catch (Exception ex)
+            {
+                logger.Info("exception: " + ex.ToString());
+            }
 
             return Ok(request);
         }

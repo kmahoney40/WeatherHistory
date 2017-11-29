@@ -15,24 +15,43 @@ namespace WeatherHistory.Web.Api
     public class DoorController : ApiController
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        public DoorController() { }
+        public DoorController() 
+        {
+            logger.Trace("request: " + "DoorController()");
+        }
 
         [Route("")]
         public IHttpActionResult Get()
         {
-            return Ok("{\"door\": \"door\"}");
+            logger.Trace("request: " + "Get() api/door()");
+            string retVal = "{\"door\": \"fasle\"}";
+            using (var context = new db_Entities())
+            {
+                logger.Trace("request: " + "Get() inside context");
+                var row = context.door.ToList().FirstOrDefault();
+                if (row.cmd == true)
+                {
+                    row.cmd = false;
+                    retVal = "{\"door\": \"true\"}";
+                }
+                context.SaveChanges();
+            }
+            var vv = Json(retVal);
+            logger.Trace("Get() api/door retVal: " + retVal);
+            return Json(retVal);
+            //return Ok(retVal);
         }
 
         [Route("")]
-        public IHttpActionResult Post([FromBodyAttribute] bool requset)
+        public IHttpActionResult Post([FromBody] string requset)
         {
             logger.Trace("request: " + requset);
             
             //DOOR row;
             using (var context = new db_Entities())
             {
-                var row = context.DOOR.ToList().FirstOrDefault();
-                row.CMD = true;
+                var row = context.door.ToList().FirstOrDefault();
+                row.cmd = true;
                 context.SaveChanges();
             }
             return Ok("WOOT");
